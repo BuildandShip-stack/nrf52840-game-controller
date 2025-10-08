@@ -1,332 +1,14 @@
-// // #include <zephyr/kernel.h>
-// // #include <zephyr/sys/printk.h>
-// // #include <zephyr/drivers/gpio.h>
-// // #include <zephyr/drivers/adc.h>
-// // #include <zephyr/devicetree.h>
-
-// // // Pin definitions - Arduino shield mapping
-// // #define JOYSTICK_X_ANALOG_PIN  1  // AIN1 for A0
-// // #define JOYSTICK_Y_ANALOG_PIN  2  // AIN2 for A1
-// // #define JOYSTICK_BUTTON_PIN   10  // P1.10 for D8
-
-// // // Button pins D2-D7 on GPIO1
-// // static const int button_pins[] = {3, 4, 5, 6, 7, 8};
-// // static const int num_buttons = 6;
-
-// // static const struct device *gpio_dev;
-// // static const struct device *adc_dev;
-
-// // // ADC channel IDs
-// // #define X_ADC_CHANNEL 0
-// // #define Y_ADC_CHANNEL 1
-
-// // // Advanced filtering settings
-// // #define SAMPLE_COUNT 16     // Number of samples for moving average
-// // #define DEADZONE 15         // Ignore small changes around center
-
-// // // Moving average buffers
-// // static int x_samples[SAMPLE_COUNT] = {0};
-// // static int y_samples[SAMPLE_COUNT] = {0};
-// // static int sample_index = 0;
-
-// // // Calibrated center positions (adjust these based on your readings)
-// // static int x_center = 115;  // Adjust based on your center X reading
-// // static int y_center = 700;  // Adjust based on your center Y reading
-
-// // // Simple absolute value function
-// // static int abs_val(int value)
-// // {
-// //     return (value < 0) ? -value : value;
-// // }
-
-// // // Initialize ADC
-// // int init_adc(void)
-// // {
-// //     adc_dev = DEVICE_DT_GET(DT_NODELABEL(adc));
-    
-// //     if (!device_is_ready(adc_dev)) {
-// //         printk("ADC device not ready\n");
-// //         return -1;
-// //     }
-    
-// //     printk("ADC initialized successfully\n");
-// //     return 0;
-// // }
-
-// // // Read single ADC channel with proper setup
-// // int read_adc_channel(uint8_t channel_id, uint8_t analog_pin)
-// // {
-// //     int16_t adc_value;
-// //     int ret;
-
-// //     // Configure ADC channel
-// //     struct adc_channel_cfg channel_cfg = {
-// //         .gain = ADC_GAIN_1_4,
-// //         .reference = ADC_REF_INTERNAL,
-// //         .acquisition_time = ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40),
-// //         .channel_id = channel_id,
-// //         .input_positive = analog_pin,
-// //     };
-
-// //     ret = adc_channel_setup(adc_dev, &channel_cfg);
-// //     if (ret != 0) {
-// //         return -1;
-// //     }
-
-// //     // Configure sequence
-// //     struct adc_sequence sequence = {
-// //         .channels = BIT(channel_id),
-// //         .buffer = &adc_value,
-// //         .buffer_size = sizeof(adc_value),
-// //         .resolution = 12,
-// //     };
-
-// //     ret = adc_read(adc_dev, &sequence);
-// //     if (ret != 0) {
-// //         return -1;
-// //     }
-
-// //     return (int)adc_value;
-// // }
-
-// // // Convert 12-bit ADC value to 10-bit Arduino range
-// // int convert_to_arduino_range(int value_12bit)
-// // {
-// //     if (value_12bit < 0) return -1;
-// //     return (value_12bit * 1023) / 4095;
-// // }
-
-// // // Moving average filter
-// // void apply_moving_average(int x_raw, int y_raw, int *x_filtered, int *y_filtered)
-// // {
-// //     // Add new samples to buffers
-// //     x_samples[sample_index] = x_raw;
-// //     y_samples[sample_index] = y_raw;
-    
-// //     // Move to next position in circular buffer
-// //     sample_index = (sample_index + 1) % SAMPLE_COUNT;
-    
-// //     // Calculate moving average
-// //     int x_sum = 0, y_sum = 0;
-// //     for (int i = 0; i < SAMPLE_COUNT; i++) {
-// //         x_sum += x_samples[i];
-// //         y_sum += y_samples[i];
-// //     }
-    
-// //     *x_filtered = x_sum / SAMPLE_COUNT;
-// //     *y_filtered = y_sum / SAMPLE_COUNT;
-// // }
-
-// // // Apply deadzone around center
-// // void apply_deadzone(int *x, int *y)
-// // {
-// //     if (abs_val(*x - x_center) < DEADZONE) {
-// //         *x = x_center;
-// //     }
-// //     if (abs_val(*y - y_center) < DEADZONE) {
-// //         *y = y_center;
-// //     }
-// // }
-
-// // // Read and filter joystick values
-// // void read_joystick_filtered(int *x_value, int *y_value)
-// // {
-// //     int x_raw, y_raw;
-// //     int x_avg, y_avg;
-    
-// //     // Read X-axis
-// //     x_raw = read_adc_channel(X_ADC_CHANNEL, JOYSTICK_X_ANALOG_PIN);
-// //     if (x_raw < 0) {
-// //         *x_value = -1;
-// //         *y_value = -1;
-// //         return;
-// //     }
-    
-// //     // Read Y-axis
-// //     y_raw = read_adc_channel(Y_ADC_CHANNEL, JOYSTICK_Y_ANALOG_PIN);
-// //     if (y_raw < 0) {
-// //         *x_value = -1;
-// //         *y_value = -1;
-// //         return;
-// //     }
-    
-// //     // Convert to Arduino range
-// //     x_raw = convert_to_arduino_range(x_raw);
-// //     y_raw = convert_to_arduino_range(y_raw);
-    
-// //     // Apply moving average filter
-// //     apply_moving_average(x_raw, y_raw, &x_avg, &y_avg);
-    
-// //     // Apply deadzone
-// //     apply_deadzone(&x_avg, &y_avg);
-    
-// //     *x_value = x_avg;
-// //     *y_value = y_avg;
-// // }
-
-// // // Initialize GPIO for buttons
-// // int init_gpio(void)
-// // {
-// //     int ret;
-    
-// //     gpio_dev = DEVICE_DT_GET(DT_NODELABEL(gpio1));
-    
-// //     if (!device_is_ready(gpio_dev)) {
-// //         printk("GPIO device not ready\n");
-// //         return -1;
-// //     }
-
-// //     // Configure joystick button
-// //     ret = gpio_pin_configure(gpio_dev, JOYSTICK_BUTTON_PIN, 
-// //                             GPIO_INPUT | GPIO_PULL_UP);
-// //     if (ret != 0) {
-// //         printk("Failed to configure joystick button: %d\n", ret);
-// //         return ret;
-// //     }
-
-// //     // Configure all other buttons
-// //     for (int i = 0; i < num_buttons; i++) {
-// //         ret = gpio_pin_configure(gpio_dev, button_pins[i], 
-// //                                 GPIO_INPUT | GPIO_PULL_UP);
-// //         if (ret != 0) {
-// //             printk("Failed to configure button D%d: %d\n", i + 2, ret);
-// //             return ret;
-// //         }
-// //     }
-    
-// //     printk("GPIO initialized successfully\n");
-// //     return 0;
-// // }
-
-// // // Read button states
-// // void read_buttons(int *joystick_button, bool *button_states)
-// // {
-// //     // Read joystick button (active low)
-// //     *joystick_button = gpio_pin_get(gpio_dev, JOYSTICK_BUTTON_PIN);
-    
-// //     // Read all other buttons
-// //     for (int i = 0; i < num_buttons; i++) {
-// //         button_states[i] = (gpio_pin_get(gpio_dev, button_pins[i]) == 0);
-// //     }
-// // }
-
-// // // Auto-calibrate center position
-// // void auto_calibrate(void)
-// // {
-// //     printk("Auto-calibrating... Keep joystick centered!\n");
-    
-// //     int x_sum = 0, y_sum = 0;
-// //     const int cal_samples = 50;
-    
-// //     for (int i = 0; i < cal_samples; i++) {
-// //         int x_raw = read_adc_channel(X_ADC_CHANNEL, JOYSTICK_X_ANALOG_PIN);
-// //         int y_raw = read_adc_channel(Y_ADC_CHANNEL, JOYSTICK_Y_ANALOG_PIN);
-        
-// //         if (x_raw >= 0 && y_raw >= 0) {
-// //             x_sum += convert_to_arduino_range(x_raw);
-// //             y_sum += convert_to_arduino_range(y_raw);
-// //         }
-// //         k_msleep(10);
-// //     }
-    
-// //     x_center = x_sum / cal_samples;
-// //     y_center = y_sum / cal_samples;
-    
-// //     printk("Calibration complete: X_center=%d, Y_center=%d\n", x_center, y_center);
-// // }
-
-// // void main(void)
-// // {
-// //     printk("=== nRF52840 Funduino Joystick Test ===\n");
-// //     printk("Initializing peripherals...\n");
-
-// //     // Initialize ADC
-// //     if (init_adc() != 0) {
-// //         return;
-// //     }
-
-// //     // Initialize GPIO
-// //     if (init_gpio() != 0) {
-// //         return;
-// //     }
-
-// //     // Auto-calibrate center position
-// //     auto_calibrate();
-
-// //     printk("\nPin Mapping:\n");
-// //     printk("Joystick X: A0 -> AIN1 (P0.03)\n");
-// //     printk("Joystick Y: A1 -> AIN2 (P0.04)\n");
-// //     printk("Buttons: D2-D7 -> P1.03-P1.08\n");
-// //     printk("Joy Button: D8 -> P1.10\n");
-// //     printk("Filter: %d-sample moving average, %d deadzone\n", SAMPLE_COUNT, DEADZONE);
-// //     printk("Calibration: X=%d, Y=%d\n", x_center, y_center);
-// //     printk("==============================\n\n");
-
-// //     // Initialize sample buffers with center values
-// //     for (int i = 0; i < SAMPLE_COUNT; i++) {
-// //         x_samples[i] = x_center;
-// //         y_samples[i] = y_center;
-// //     }
-
-// //     int x_value, y_value;
-// //     int joystick_button;
-// //     bool button_states[num_buttons];
-// //     uint32_t counter = 0;
-
-// //     while (1) {
-// //         // Read joystick with advanced filtering
-// //         read_joystick_filtered(&x_value, &y_value);
-        
-// //         // Read buttons
-// //         read_buttons(&joystick_button, button_states);
-
-// //         // Print status every 10 iterations
-// //         if (counter % 10 == 0) {
-// //             if (x_value >= 0 && y_value >= 0) {
-// //                 printk("Joystick X: %4d, Y: %4d | Button: %s", 
-// //                        x_value, y_value,
-// //                        joystick_button == 0 ? "PRESSED " : "Released");
-// //             } else {
-// //                 printk("Joystick X: ----, Y: ---- | Button: %s",
-// //                        joystick_button == 0 ? "PRESSED " : "Released");
-// //             }
-
-// //             // Check if any buttons are pressed
-// //             bool any_pressed = false;
-// //             for (int i = 0; i < num_buttons; i++) {
-// //                 if (button_states[i]) {
-// //                     if (!any_pressed) {
-// //                         printk(" | Buttons: ");
-// //                         any_pressed = true;
-// //                     }
-// //                     printk("D%d ", i + 2);
-// //                 }
-// //             }
-            
-// //             if (any_pressed) {
-// //                 printk("PRESSED");
-// //             }
-            
-// //             printk("\n");
-// //         }
-
-// //         counter++;
-// //         k_msleep(50); // Faster sampling for better filtering
-// //     }
-// // }
-
-
-
-//working 
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/devicetree.h>
+#include <zephyr/usb/usb_device.h>
+#include <zephyr/usb/class/usb_hid.h>
 
-// CORRECT PIN MAPPING:
-#define X_PIN_ANALOG 1  // AIN2 for X-axis (CONFIRMED)
-#define Y_PIN_ANALOG 2  
+// Pin Mapping
+#define X_PIN_ANALOG 1  // AIN2 for X-axis
+#define Y_PIN_ANALOG 2  // AIN1 for Y-axis
 
 // Digital pins
 #define JOYSTICK_BUTTON_PIN 10
@@ -336,6 +18,11 @@ static const int button_pins[] = {3, 4, 5, 6, 7, 8};
 static const struct device *gpio_dev;
 static const struct device *adc_dev;
 
+// USB HID Device
+static const struct device *hid_dev;
+static bool hid_ready = false;
+
+// ADC buffers
 static int16_t adc_buffer[2];
 static struct adc_sequence sequence = {
     .channels = BIT(0) | BIT(1),
@@ -343,6 +30,79 @@ static struct adc_sequence sequence = {
     .buffer_size = sizeof(adc_buffer),
     .resolution = 12,
 };
+
+// Standard Gamepad HID Report Descriptor
+static const uint8_t hid_report_desc[] = {
+    0x05, 0x01,        // Usage Page (Generic Desktop)
+    0x09, 0x05,        // Usage (Game Pad)
+    0xA1, 0x01,        // Collection (Application)
+    
+    // Buttons (8 buttons - 1 byte)
+    0x05, 0x09,        // Usage Page (Button)
+    0x19, 0x01,        // Usage Minimum (Button 1)
+    0x29, 0x08,        // Usage Maximum (Button 8)
+    0x15, 0x00,        // Logical Minimum (0)
+    0x25, 0x01,        // Logical Maximum (1)
+    0x75, 0x01,        // Report Size (1)
+    0x95, 0x08,        // Report Count (8)
+    0x81, 0x02,        // Input (Data,Var,Abs)
+    
+    // X and Y axes (8-bit each)
+    0x05, 0x01,        // Usage Page (Generic Desktop)
+    0x09, 0x30,        // Usage (X)
+    0x09, 0x31,        // Usage (Y)
+    0x15, 0x00,        // Logical Minimum (0)
+    0x26, 0xFF, 0x00,  // Logical Maximum (255)
+    0x75, 0x08,        // Report Size (8)
+    0x95, 0x02,        // Report Count (2)
+    0x81, 0x02,        // Input (Data,Var,Abs)
+    
+    0xC0,              // End Collection
+};
+
+// HID Report Structure for 8-bit axes
+struct hid_joystick_report {
+    uint8_t buttons;
+    uint8_t x;
+    uint8_t y;
+} __packed;
+
+static struct hid_joystick_report joystick_report;
+
+// USB Status Callback
+static void hid_status_cb(enum usb_dc_status_code status, const uint8_t *param)
+{
+    switch (status) {
+    case USB_DC_ERROR:
+        printk("USB error occurred\n");
+        hid_ready = false;
+        break;
+    case USB_DC_RESET:
+        printk("USB reset occurred\n");
+        break;
+    case USB_DC_CONNECTED:
+        printk("USB connected\n");
+        break;
+    case USB_DC_CONFIGURED:
+        printk("USB configured - HID ready!\n");
+        hid_ready = true;
+        break;
+    case USB_DC_DISCONNECTED:
+        printk("USB disconnected\n");
+        hid_ready = false;
+        break;
+    case USB_DC_SUSPEND:
+        printk("USB suspended\n");
+        break;
+    case USB_DC_RESUME:
+        printk("USB resumed\n");
+        break;
+    case USB_DC_UNKNOWN:
+    default:
+        printk("USB unknown state: %d\n", status);
+        break;
+    }
+}
 
 void setup_adc(void) {
     adc_dev = DEVICE_DT_GET(DT_NODELABEL(adc));
@@ -354,36 +114,134 @@ void setup_adc(void) {
 
     // Configure X-axis (AIN2)
     struct adc_channel_cfg channel_cfg_x = {
-        .gain = ADC_GAIN_1_4,
+        .gain = ADC_GAIN_1_6,
         .reference = ADC_REF_INTERNAL,
         .acquisition_time = ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40),
         .channel_id = 0,
-        .input_positive = SAADC_CH_PSELP_PSELP_AnalogInput0 + X_PIN_ANALOG, // AIN2
+        .input_positive = SAADC_CH_PSELP_PSELP_AnalogInput0 + X_PIN_ANALOG,
     };
 
     // Configure Y-axis (AIN1)  
     struct adc_channel_cfg channel_cfg_y = {
-        .gain = ADC_GAIN_1_4,
+        .gain = ADC_GAIN_1_6,
         .reference = ADC_REF_INTERNAL,
         .acquisition_time = ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40),
         .channel_id = 1,
-        .input_positive = SAADC_CH_PSELP_PSELP_AnalogInput0 + Y_PIN_ANALOG, // AIN1
+        .input_positive = SAADC_CH_PSELP_PSELP_AnalogInput0 + Y_PIN_ANALOG,
     };
 
     adc_channel_setup(adc_dev, &channel_cfg_x);
     adc_channel_setup(adc_dev, &channel_cfg_y);
 }
 
-int convert_to_arduino_range(int value_12bit) {
+int convert_to_10bit_range(int value_12bit) {
     return (value_12bit * 1023) / 4095;
 }
 
-void main(void) {
+void setup_usb_hid(void) {
+    // Initialize USB
+    int ret = usb_enable(hid_status_cb);
+    if (ret != 0) {
+        printk("Failed to enable USB: %d\n", ret);
+        return;
+    }
+    
+    // Get HID device
+    hid_dev = device_get_binding("HID_0");
+    if (hid_dev == NULL) {
+        printk("Cannot get HID device\n");
+        return;
+    }
+
+    // Register HID device
+    usb_hid_register_device(hid_dev, hid_report_desc, sizeof(hid_report_desc), NULL);
+
+    // Initialize HID
+    usb_hid_init(hid_dev);
+    
+    printk("USB HID initialized, waiting for host...\n");
+}
+
+void update_joystick_report(int x_value, int y_value, int joystick_button) {
+    // Clear previous button states
+    joystick_report.buttons = 0;
+    
+    // Button 1: Joystick press
+    if (joystick_button == 0) {
+        joystick_report.buttons |= 0x01;
+    }
+    
+    // Buttons 2-7: Digital buttons
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        if (gpio_pin_get(gpio_dev, button_pins[i]) == 0) {
+            joystick_report.buttons |= (1 << (i + 1));
+        }
+    }
+    
+    // Convert to 8-bit range and INVERT Y-axis
+    joystick_report.x = (uint8_t)((x_value * 255) / 1023);
+    joystick_report.y = (uint8_t)(255 - ((y_value * 255) / 1023));  // Inverted Y
+}
+
+bool send_hid_report(void) {
+    if (!hid_ready || hid_dev == NULL) {
+        return false;
+    }
+    
+    int ret = hid_int_ep_write(hid_dev, (uint8_t*)&joystick_report, 
+                              sizeof(joystick_report), NULL);
+    if (ret < 0) {
+        if (ret != -EAGAIN) {
+            printk("HID write failed: %d\n", ret);
+        }
+        return false;
+    }
+    
+    return true;
+}
+
+void print_debug_info(int x_value, int y_value, int joystick_button) {
+    static int count = 0;
+    
+    if (count % 20 == 0) {
+        printk("\nX\tY\tButtons\tBinary\tHID Ready\n");
+        printk("---\t---\t-------\t------\t---------\n");
+    }
+    
+    // Convert to 8-bit for display
+    uint8_t x_8bit = (x_value * 255) / 1023;
+    uint8_t y_8bit = 255 - ((y_value * 255) / 1023);  // Inverted for display
+    
+    printk("%d\t%d\t", x_8bit, y_8bit);
+    
+    // Print button states
+    uint8_t buttons = 0;
+    if (joystick_button == 0) buttons |= 0x01;
+    for (int i = 0; i < NUM_BUTTONS; i++) {
+        if (gpio_pin_get(gpio_dev, button_pins[i]) == 0) {
+            buttons |= (1 << (i + 1));
+        }
+    }
+    
+    printk("0x%02X\t", buttons);
+    
+    // Print binary representation
+    for (int i = 7; i >= 0; i--) {
+        printk("%d", (buttons >> i) & 1);
+    }
+    
+    printk("\t%s", hid_ready ? "YES" : "NO");
+    printk("\n");
+    
+    count++;
+}
+
+int main(void) {
     gpio_dev = DEVICE_DT_GET(DT_NODELABEL(gpio1));
     
     if (!device_is_ready(gpio_dev)) {
         printk("GPIO device not ready\n");
-        return;
+        return 0;
     }
 
     // Configure buttons
@@ -393,37 +251,39 @@ void main(void) {
     }
 
     setup_adc();
+    setup_usb_hid();
 
-    printk("=== JOYSTICK WORKING - CORRECT PINS ===\n");
-    printk("X-axis: AIN%d | Y-axis: AIN%d\n", X_PIN_ANALOG, Y_PIN_ANALOG);
-    printk("Expected behavior:\n");
-    printk("  Center: X=512, Y=512\n");
-    printk("  Left:   X=0,   Y=512\n");
-    printk("  Right:  X=1023,Y=512\n");
-    printk("  Up:     X=512, Y=0\n");
-    printk("  Down:   X=512, Y=1023\n");
-    printk("=======================================\n\n");
+    printk("=== USB HID JOYSTICK READY ===\n");
+    printk("Y-axis inverted fix applied\n");
+    printk("Waiting for USB configuration...\n");
+    printk("====================================\n\n");
+
+    k_msleep(1000);
 
     while (1) {
         if (adc_read(adc_dev, &sequence) == 0) {
-            int x_value = convert_to_arduino_range(adc_buffer[0]);
-            int y_value = convert_to_arduino_range(adc_buffer[1]);
-            
+            int x_value = convert_to_10bit_range(adc_buffer[0]);
+            int y_value = convert_to_10bit_range(adc_buffer[1]);
             int joystick_button = gpio_pin_get(gpio_dev, JOYSTICK_BUTTON_PIN);
 
-            printk("X: %4d | Y: %4d | Btn: %s",
-                   x_value, y_value,
-                   joystick_button == 0 ? "Pressed" : "Released");
-
-            for (int i = 0; i < NUM_BUTTONS; i++) {
-                if (gpio_pin_get(gpio_dev, button_pins[i]) == 0) {
-                    printk(" | D%d:Pressed", i + 2);
-                }
+            // Update HID report (with Y-axis inversion)
+            update_joystick_report(x_value, y_value, joystick_button);
+            
+            // Send HID report only if ready
+            if (hid_ready) {
+                send_hid_report();
             }
-
-            printk("\n");
+            
+            // Print debug info
+            static int debug_count = 0;
+            if (debug_count % 10 == 0) {
+                print_debug_info(x_value, y_value, joystick_button);
+            }
+            debug_count++;
         }
 
-        k_msleep(50);
+        k_msleep(20);
     }
+
+    return 0;
 }
