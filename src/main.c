@@ -325,8 +325,8 @@
 #include <zephyr/devicetree.h>
 
 // CORRECT PIN MAPPING:
-#define X_PIN_ANALOG 2  // AIN2 for X-axis (CONFIRMED)
-#define Y_PIN_ANALOG 1  // AIN1 for Y-axis (CONFIRMED)
+#define X_PIN_ANALOG 1  // AIN2 for X-axis (CONFIRMED)
+#define Y_PIN_ANALOG 2  
 
 // Digital pins
 #define JOYSTICK_BUTTON_PIN 10
